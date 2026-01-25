@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { format, isToday, isSameMonth } from 'date-fns';
+import { format, isToday, isSameMonth, isFuture, startOfDay } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { DayEntry, FlowIntensity } from '@/types/period';
 
@@ -41,6 +41,7 @@ export function DayCell({
 }: DayCellProps) {
   const isCurrentMonth = isSameMonth(date, currentMonth);
   const today = isToday(date);
+  const isFutureDate = isFuture(startOfDay(date)) && !today;
   const hasFlow = entry?.flow && entry.flow !== 'none';
   const hasMood = entry?.mood?.emoji;
   const hasSymptoms = entry?.symptoms && entry.symptoms.length > 0;
@@ -63,15 +64,25 @@ export function DayCell({
   const isCompact = indicatorCount > 2;
   const iconSize = isCompact ? 'text-[10px]' : 'text-xs';
 
+  const handleClick = () => {
+    // Don't allow recording entries for future dates
+    if (isFutureDate) return;
+    onClick();
+  };
+
   return (
     <motion.button
-      whileTap={{ scale: 0.95 }}
-      onClick={onClick}
+      whileTap={isFutureDate ? undefined : { scale: 0.95 }}
+      onClick={handleClick}
+      disabled={isFutureDate}
       className={cn(
         'relative flex flex-col items-center justify-start p-1 min-h-[72px] rounded-xl transition-all',
-        'hover:bg-secondary/50 focus:outline-none focus:ring-2 focus:ring-primary/50',
+        'focus:outline-none focus:ring-2 focus:ring-primary/50',
         !isCurrentMonth && 'opacity-40',
-        today && 'ring-2 ring-primary ring-offset-2 ring-offset-background'
+        today && 'ring-2 ring-primary ring-offset-2 ring-offset-background',
+        isFutureDate 
+          ? 'cursor-default' 
+          : 'hover:bg-secondary/50 cursor-pointer'
       )}
     >
       {/* Date Number */}

@@ -5,6 +5,8 @@ import {
   eachDayOfInterval,
   format,
   isToday,
+  isFuture,
+  startOfDay,
 } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { usePeriodDataContext } from '@/contexts/PeriodDataContext';
@@ -48,6 +50,7 @@ export function WeekView({ currentDate, onDayClick }: WeekViewProps) {
         const dateStr = format(day, 'yyyy-MM-dd');
         const entry = getEntry(dateStr);
         const today = isToday(day);
+        const isFutureDate = isFuture(startOfDay(day)) && !today;
         const inFertileWindow = isInFertileWindow(dateStr);
         const isPredicted = isPredictedPeriodDay(dateStr);
         const stats = getCycleStats();
@@ -55,18 +58,27 @@ export function WeekView({ currentDate, onDayClick }: WeekViewProps) {
         const hasFlow = entry?.flow && entry.flow !== 'none';
         const hasConfirmedOvulation = entry?.confirmedOvulation;
 
+        const handleClick = () => {
+          if (isFutureDate) return;
+          onDayClick(day);
+        };
+
         return (
           <motion.button
             key={dateStr}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: index * 0.05 }}
-            whileTap={{ scale: 0.98 }}
-            onClick={() => onDayClick(day)}
+            whileTap={isFutureDate ? undefined : { scale: 0.98 }}
+            onClick={handleClick}
+            disabled={isFutureDate}
             className={cn(
               'w-full p-4 rounded-2xl text-left transition-all',
-              'bg-card border border-border hover:border-primary/30 hover:shadow-soft',
-              today && 'ring-2 ring-primary ring-offset-2 ring-offset-background'
+              'bg-card border border-border',
+              today && 'ring-2 ring-primary ring-offset-2 ring-offset-background',
+              isFutureDate 
+                ? 'cursor-default opacity-60' 
+                : 'hover:border-primary/30 hover:shadow-soft cursor-pointer'
             )}
           >
             {/* Date Header */}
@@ -202,7 +214,7 @@ export function WeekView({ currentDate, onDayClick }: WeekViewProps) {
             {/* Empty State */}
             {!entry && !hasFlow && (
               <p className="text-sm text-muted-foreground">
-                Tap to log your day
+                {isFutureDate ? 'Future date' : 'Tap to log your day'}
               </p>
             )}
           </motion.button>

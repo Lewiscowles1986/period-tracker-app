@@ -1,5 +1,5 @@
 import { useState, useCallback, useMemo } from 'react';
-import { addMonths, subMonths, format, parseISO, differenceInDays } from 'date-fns';
+import { addMonths, subMonths, addWeeks, subWeeks, addYears, format, parseISO, differenceInDays, isAfter, startOfMonth, startOfWeek } from 'date-fns';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Sparkles, Calendar } from 'lucide-react';
 import { CalendarHeader } from './calendar/CalendarHeader';
@@ -8,6 +8,8 @@ import { WeekView } from './calendar/WeekView';
 import { DayEntryModal } from './entry/DayEntryModal';
 import { usePeriodDataContext } from '@/contexts/PeriodDataContext';
 
+const MAX_YEARS_FORWARD = 2;
+
 export function CalendarPage() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [view, setView] = useState<'month' | 'week'>('month');
@@ -15,6 +17,18 @@ export function CalendarPage() {
   const { getCycleStats } = usePeriodDataContext();
 
   const stats = useMemo(() => getCycleStats(), [getCycleStats]);
+
+  // Calculate max forward date (2 years from now)
+  const maxForwardDate = useMemo(() => addYears(new Date(), MAX_YEARS_FORWARD), []);
+
+  // Check if navigation would exceed forward limit
+  const canNavigateForward = useMemo(() => {
+    if (view === 'month') {
+      return isAfter(maxForwardDate, startOfMonth(addMonths(currentDate, 1)));
+    } else {
+      return isAfter(maxForwardDate, startOfWeek(addWeeks(currentDate, 1)));
+    }
+  }, [currentDate, view, maxForwardDate]);
 
   // Calculate days until ovulation
   const ovulationInfo = useMemo(() => {
@@ -42,8 +56,20 @@ export function CalendarPage() {
   }, []);
 
   const handleNextMonth = useCallback(() => {
-    setCurrentDate((prev) => addMonths(prev, 1));
+    if (canNavigateForward) {
+      setCurrentDate((prev) => addMonths(prev, 1));
+    }
+  }, [canNavigateForward]);
+
+  const handlePreviousWeek = useCallback(() => {
+    setCurrentDate((prev) => subWeeks(prev, 1));
   }, []);
+
+  const handleNextWeek = useCallback(() => {
+    if (canNavigateForward) {
+      setCurrentDate((prev) => addWeeks(prev, 1));
+    }
+  }, [canNavigateForward]);
 
   const handleToday = useCallback(() => {
     setCurrentDate(new Date());
@@ -61,7 +87,10 @@ export function CalendarPage() {
         onViewChange={setView}
         onPreviousMonth={handlePreviousMonth}
         onNextMonth={handleNextMonth}
+        onPreviousWeek={handlePreviousWeek}
+        onNextWeek={handleNextWeek}
         onToday={handleToday}
+        canNavigateForward={canNavigateForward}
       />
 
       {/* Prominent Ovulation/Period Prediction Cards */}

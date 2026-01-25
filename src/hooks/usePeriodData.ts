@@ -3,12 +3,15 @@ import {
   PeriodData,
   DayEntry,
   SavedMood,
+  SavedSymptom,
   CycleInfo,
   CycleStats,
+  FutureCyclePrediction,
   DEFAULT_PERIOD_DATA,
+  DEFAULT_PREDICTION_SETTINGS,
   FlowIntensity,
 } from '@/types/period';
-import { format, parseISO, differenceInDays, addDays, isAfter, isBefore } from 'date-fns';
+import { format, parseISO, differenceInDays, addDays, addMonths, isAfter, isBefore } from 'date-fns';
 
 const STORAGE_KEY = 'flow-period-tracker-data';
 
@@ -132,6 +135,47 @@ export function usePeriodData() {
     }));
   }, []);
 
+  // Save a custom symptom
+  const saveSymptom = useCallback((emoji: string, text: string) => {
+    setData((prev) => {
+      const existingIndex = prev.savedSymptoms.findIndex(
+        (s) => s.emoji === emoji && s.text === text
+      );
+
+      if (existingIndex >= 0) {
+        // Update existing symptom
+        const updated = [...prev.savedSymptoms];
+        updated[existingIndex] = {
+          ...updated[existingIndex],
+          usageCount: updated[existingIndex].usageCount + 1,
+          lastUsed: new Date().toISOString(),
+        };
+        return { ...prev, savedSymptoms: updated };
+      }
+
+      // Add new symptom
+      const newSymptom: SavedSymptom = {
+        id: crypto.randomUUID(),
+        emoji,
+        text,
+        usageCount: 1,
+        lastUsed: new Date().toISOString(),
+      };
+      return {
+        ...prev,
+        savedSymptoms: [...prev.savedSymptoms, newSymptom],
+      };
+    });
+  }, []);
+
+  // Delete a saved symptom
+  const deleteSavedSymptom = useCallback((id: string) => {
+    setData((prev) => ({
+      ...prev,
+      savedSymptoms: prev.savedSymptoms.filter((s) => s.id !== id),
+    }));
+  }, []);
+
   // Calculate cycles from entries
   const calculateCycles = useCallback((): CycleInfo[] => {
     const entries = Object.values(data.entries)
@@ -188,6 +232,7 @@ export function usePeriodData() {
   const getCycleStats = useCallback((): CycleStats => {
     const cycles = calculateCycles();
     const completedCycles = cycles.filter((c) => c.length !== undefined);
+    const predictionSettings = data.settings.predictions || DEFAULT_PREDICTION_SETTINGS;
 
     if (completedCycles.length === 0) {
       return {
@@ -196,6 +241,7 @@ export function usePeriodData() {
         longestCycle: data.settings.cycleLength,
         averagePeriodLength: data.settings.periodLength,
         totalCyclesTracked: 0,
+        futurePredictions: [],
       };
     }
 
@@ -211,26 +257,62 @@ export function usePeriodData() {
       periodLengths.reduce((a, b) => a + b, 0) / periodLengths.length
     );
 
-    // Predict next period based on last cycle start
-    const lastCycle = cycles[cycles.length - 1];
+    // Generate future predictions
+    const futurePredictions: FutureCyclePrediction[] = [];
     let predictedNextPeriod: string | undefined;
     let predictedOvulation: string | undefined;
     let fertileWindowStart: string | undefined;
     let fertileWindowEnd: string | undefined;
 
-    if (lastCycle) {
-      const lastStart = parseISO(lastCycle.startDate);
-      const nextPeriodDate = addDays(lastStart, avgLength);
+    if (predictionSettings.enabled) {
+      const lastCycle = cycles[cycles.length - 1];
+      
+      if (lastCycle) {
+        const today = new Date();
+        const maxPredictionDate = addMonths(today, predictionSettings.monthsAhead);
+        let currentCycleStart = parseISO(lastCycle.startDate);
+        let cycleNumber = 0;
 
-      if (isAfter(nextPeriodDate, new Date())) {
-        predictedNextPeriod = format(nextPeriodDate, 'yyyy-MM-dd');
+        // Generate predictions up to the specified months ahead
+        while (cycleNumber < 50) { // Safety limit
+          const nextPeriodStart = addDays(currentCycleStart, avgLength);
+          
+          if (isAfter(nextPeriodStart, maxPredictionDate)) {
+            break;
+          }
 
-        // Ovulation typically occurs 14 days before next period
-        const ovulationDate = addDays(nextPeriodDate, -14);
-        if (isAfter(ovulationDate, new Date())) {
-          predictedOvulation = format(ovulationDate, 'yyyy-MM-dd');
-          fertileWindowStart = format(addDays(ovulationDate, -5), 'yyyy-MM-dd');
-          fertileWindowEnd = format(addDays(ovulationDate, 1), 'yyyy-MM-dd');
+          cycleNumber++;
+          const periodEnd = addDays(nextPeriodStart, avgPeriodLength - 1);
+          const ovulationDate = addDays(nextPeriodStart, avgLength - 14);
+          const fertileStart = addDays(ovulationDate, -5);
+          const fertileEnd = addDays(ovulationDate, 1);
+
+          // Only add future predictions
+          if (isAfter(nextPeriodStart, today)) {
+            const prediction: FutureCyclePrediction = {
+              cycleNumber,
+              periodStart: format(nextPeriodStart, 'yyyy-MM-dd'),
+              periodEnd: format(periodEnd, 'yyyy-MM-dd'),
+              ovulationDate: format(ovulationDate, 'yyyy-MM-dd'),
+              fertileWindowStart: format(fertileStart, 'yyyy-MM-dd'),
+              fertileWindowEnd: format(fertileEnd, 'yyyy-MM-dd'),
+            };
+            futurePredictions.push(prediction);
+
+            // Set first future prediction as "next" for backward compatibility
+            if (cycleNumber === 1 || !predictedNextPeriod) {
+              if (isAfter(nextPeriodStart, today)) {
+                predictedNextPeriod = prediction.periodStart;
+                if (isAfter(ovulationDate, today)) {
+                  predictedOvulation = prediction.ovulationDate;
+                  fertileWindowStart = prediction.fertileWindowStart;
+                  fertileWindowEnd = prediction.fertileWindowEnd;
+                }
+              }
+            }
+          }
+
+          currentCycleStart = nextPeriodStart;
         }
       }
     }
@@ -245,43 +327,64 @@ export function usePeriodData() {
       predictedOvulation,
       fertileWindowStart,
       fertileWindowEnd,
+      futurePredictions,
     };
   }, [calculateCycles, data.settings]);
 
-  // Check if a date is in the fertile window
+  // Check if a date is in the fertile window (checks all future predictions)
   const isInFertileWindow = useCallback(
     (date: string): boolean => {
       const stats = getCycleStats();
-      if (!stats.fertileWindowStart || !stats.fertileWindowEnd) return false;
-
+      const predictionSettings = data.settings.predictions || DEFAULT_PREDICTION_SETTINGS;
+      
+      if (!predictionSettings.enabled || !predictionSettings.showFertileWindows) return false;
+      
       const checkDate = parseISO(date);
-      const start = parseISO(stats.fertileWindowStart);
-      const end = parseISO(stats.fertileWindowEnd);
 
-      return (
-        (isAfter(checkDate, start) || date === stats.fertileWindowStart) &&
-        (isBefore(checkDate, end) || date === stats.fertileWindowEnd)
-      );
+      // Check all future predictions
+      for (const prediction of stats.futurePredictions) {
+        const start = parseISO(prediction.fertileWindowStart);
+        const end = parseISO(prediction.fertileWindowEnd);
+        
+        if (
+          (isAfter(checkDate, start) || date === prediction.fertileWindowStart) &&
+          (isBefore(checkDate, end) || date === prediction.fertileWindowEnd)
+        ) {
+          return true;
+        }
+      }
+
+      return false;
     },
-    [getCycleStats]
+    [getCycleStats, data.settings.predictions]
   );
 
-  // Check if a date is predicted period day
+  // Check if a date is predicted period day (checks all future predictions)
   const isPredictedPeriodDay = useCallback(
     (date: string): boolean => {
       const stats = getCycleStats();
-      if (!stats.predictedNextPeriod) return false;
+      const predictionSettings = data.settings.predictions || DEFAULT_PREDICTION_SETTINGS;
+      
+      if (!predictionSettings.enabled || !predictionSettings.showFuturePeriods) return false;
 
       const checkDate = parseISO(date);
-      const periodStart = parseISO(stats.predictedNextPeriod);
-      const periodEnd = addDays(periodStart, stats.averagePeriodLength - 1);
 
-      return (
-        (isAfter(checkDate, periodStart) || date === stats.predictedNextPeriod) &&
-        (isBefore(checkDate, periodEnd) || date === format(periodEnd, 'yyyy-MM-dd'))
-      );
+      // Check all future predictions
+      for (const prediction of stats.futurePredictions) {
+        const periodStart = parseISO(prediction.periodStart);
+        const periodEnd = parseISO(prediction.periodEnd);
+        
+        if (
+          (isAfter(checkDate, periodStart) || date === prediction.periodStart) &&
+          (isBefore(checkDate, periodEnd) || date === prediction.periodEnd)
+        ) {
+          return true;
+        }
+      }
+
+      return false;
     },
-    [getCycleStats]
+    [getCycleStats, data.settings.predictions]
   );
 
   // Export data as JSON
@@ -308,6 +411,12 @@ export function usePeriodData() {
               ...prev.savedMoods,
               ...imported.savedMoods.filter(
                 (m) => !prev.savedMoods.some((pm) => pm.id === m.id)
+              ),
+            ],
+            savedSymptoms: [
+              ...prev.savedSymptoms,
+              ...(imported.savedSymptoms || []).filter(
+                (s) => !prev.savedSymptoms.some((ps) => ps.id === s.id)
               ),
             ],
             recentEmojis: [
@@ -364,6 +473,8 @@ export function usePeriodData() {
     addRecentEmoji,
     saveMood,
     deleteSavedMood,
+    saveSymptom,
+    deleteSavedSymptom,
     getCycleStats,
     isInFertileWindow,
     isPredictedPeriodDay,

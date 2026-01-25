@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format } from 'date-fns';
-import { X, Trash2, Plus, Heart, Sparkles, ChevronDown, Thermometer, Scale } from 'lucide-react';
+import { X, Trash2, Plus, Heart, Sparkles, ChevronDown, Thermometer, Scale, ChevronRight } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
@@ -9,9 +9,11 @@ import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { usePeriodDataContext } from '@/contexts/PeriodDataContext';
 import { MoodSelector } from './MoodSelector';
+import { SymptomSelector } from './SymptomSelector';
 import {
   FlowIntensity,
   Symptom,
+  CustomSymptom,
   SleepQuality,
   EnergyLevel,
   IntimacyRating,
@@ -33,20 +35,6 @@ interface DayEntryModalProps {
 }
 
 const flowOptions: FlowIntensity[] = ['none', 'spotting', 'light', 'medium', 'heavy'];
-const symptomOptions: Symptom[] = [
-  'cramps',
-  'headache',
-  'bloating',
-  'breast_tenderness',
-  'back_pain',
-  'nausea',
-  'acne',
-  'fatigue',
-  'insomnia',
-  'cravings',
-  'mood_swings',
-  'hot_flashes',
-];
 const sleepOptions: SleepQuality[] = ['poor', 'fair', 'good', 'excellent'];
 const energyLevels: EnergyLevel[] = [1, 2, 3, 4, 5];
 const intimacyRatings: IntimacyRating[] = [1, 2, 3, 4, 5];
@@ -75,6 +63,9 @@ export function DayEntryModal({ date, onClose }: DayEntryModalProps) {
   const [moodEmoji, setMoodEmoji] = useState(existingEntry?.mood?.emoji || '');
   const [moodText, setMoodText] = useState(existingEntry?.mood?.text || '');
   const [symptoms, setSymptoms] = useState<Symptom[]>(existingEntry?.symptoms || []);
+  const [customSymptoms, setCustomSymptoms] = useState<CustomSymptom[]>(
+    existingEntry?.customSymptoms || []
+  );
   const [energyLevel, setEnergyLevel] = useState<EnergyLevel | undefined>(
     existingEntry?.energyLevel
   );
@@ -101,12 +92,26 @@ export function DayEntryModal({ date, onClose }: DayEntryModalProps) {
   );
   const [notes, setNotes] = useState(existingEntry?.notes || '');
   const [showMoodSelector, setShowMoodSelector] = useState(false);
+  const [showSymptomSelector, setShowSymptomSelector] = useState(false);
 
   const toggleSymptom = (symptom: Symptom) => {
     setSymptoms((prev) =>
       prev.includes(symptom)
         ? prev.filter((s) => s !== symptom)
         : [...prev, symptom]
+    );
+  };
+
+  const addCustomSymptom = (symptom: CustomSymptom) => {
+    // Avoid duplicates
+    if (!customSymptoms.some((s) => s.emoji === symptom.emoji && s.text === symptom.text)) {
+      setCustomSymptoms((prev) => [...prev, symptom]);
+    }
+  };
+
+  const removeCustomSymptom = (emoji: string, text: string) => {
+    setCustomSymptoms((prev) =>
+      prev.filter((s) => !(s.emoji === emoji && s.text === text))
     );
   };
 
@@ -134,6 +139,7 @@ export function DayEntryModal({ date, onClose }: DayEntryModalProps) {
       flow,
       mood: moodEmoji ? { emoji: moodEmoji, text: moodText } : undefined,
       symptoms,
+      customSymptoms: customSymptoms.length > 0 ? customSymptoms : undefined,
       energyLevel,
       sleepQuality,
       temperature: temperature ? parseFloat(temperature) : undefined,
@@ -156,6 +162,8 @@ export function DayEntryModal({ date, onClose }: DayEntryModalProps) {
     setMoodEmoji(emoji);
     setMoodText(text);
   };
+
+  const totalSymptomCount = symptoms.length + customSymptoms.length;
 
   return (
     <>
@@ -575,24 +583,47 @@ export function DayEntryModal({ date, onClose }: DayEntryModalProps) {
             <h3 className="text-sm font-semibold text-muted-foreground mb-3">
               Symptoms
             </h3>
-            <div className="flex flex-wrap gap-2">
-              {symptomOptions.map((symptom) => (
-                <motion.button
-                  key={symptom}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => toggleSymptom(symptom)}
-                  className={cn(
-                    'px-3 py-2 rounded-full text-sm font-medium transition-all flex items-center gap-1.5',
-                    symptoms.includes(symptom)
-                      ? 'bg-accent text-accent-foreground ring-2 ring-accent'
-                      : 'bg-secondary hover:bg-secondary/80'
-                  )}
-                >
-                  <span>{SYMPTOM_EMOJIS[symptom]}</span>
-                  <span>{SYMPTOM_LABELS[symptom]}</span>
-                </motion.button>
-              ))}
-            </div>
+            <motion.button
+              whileTap={{ scale: 0.98 }}
+              onClick={() => setShowSymptomSelector(true)}
+              className={cn(
+                'w-full p-4 rounded-2xl text-left transition-all flex items-center gap-4',
+                'bg-secondary hover:bg-secondary/80',
+                totalSymptomCount > 0 && 'ring-2 ring-accent'
+              )}
+            >
+              <div className="w-12 h-12 rounded-xl bg-card flex items-center justify-center text-2xl">
+                {totalSymptomCount > 0 ? '📋' : '➕'}
+              </div>
+              <div className="flex-1">
+                {totalSymptomCount > 0 ? (
+                  <>
+                    <p className="font-medium">
+                      {totalSymptomCount} symptom{totalSymptomCount !== 1 ? 's' : ''} selected
+                    </p>
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {symptoms.slice(0, 3).map((s) => (
+                        <span key={s} className="text-sm">{SYMPTOM_EMOJIS[s]}</span>
+                      ))}
+                      {customSymptoms.slice(0, 3 - Math.min(symptoms.length, 3)).map((s, i) => (
+                        <span key={i} className="text-sm">{s.emoji}</span>
+                      ))}
+                      {totalSymptomCount > 3 && (
+                        <span className="text-sm text-muted-foreground">+{totalSymptomCount - 3} more</span>
+                      )}
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <p className="font-medium">Log symptoms</p>
+                    <p className="text-sm text-muted-foreground">
+                      Tap to select or add custom
+                    </p>
+                  </>
+                )}
+              </div>
+              <ChevronRight className="w-5 h-5 text-muted-foreground" />
+            </motion.button>
           </section>
 
           {/* Energy Level */}
@@ -680,6 +711,20 @@ export function DayEntryModal({ date, onClose }: DayEntryModalProps) {
             selectedText={moodText}
             onSelect={handleMoodSelect}
             onClose={() => setShowMoodSelector(false)}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Symptom Selector */}
+      <AnimatePresence>
+        {showSymptomSelector && (
+          <SymptomSelector
+            selectedSymptoms={symptoms}
+            selectedCustomSymptoms={customSymptoms}
+            onToggleSymptom={toggleSymptom}
+            onAddCustomSymptom={addCustomSymptom}
+            onRemoveCustomSymptom={removeCustomSymptom}
+            onClose={() => setShowSymptomSelector(false)}
           />
         )}
       </AnimatePresence>

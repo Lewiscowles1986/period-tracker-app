@@ -11,12 +11,17 @@ import {
   Check,
   AlertTriangle,
   Shield,
+  Calendar,
+  Eye,
+  Sparkles,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Switch } from '@/components/ui/switch';
 import { AppHeader } from '@/components/AppHeader';
 import { usePeriodDataContext } from '@/contexts/PeriodDataContext';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { DEFAULT_PREDICTION_SETTINGS } from '@/types/period';
 
 interface SettingsPageProps {
   onOpenPrivacy?: () => void;
@@ -29,11 +34,14 @@ export function SettingsPage({ onOpenPrivacy }: SettingsPageProps) {
     importData,
     clearAllData,
     deleteSavedMood,
+    updateSettings,
   } = usePeriodDataContext();
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showMergeDialog, setShowMergeDialog] = useState(false);
   const [pendingImport, setPendingImport] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const predictionSettings = data.settings.predictions || DEFAULT_PREDICTION_SETTINGS;
 
   const handleExport = useCallback(() => {
     try {
@@ -130,6 +138,128 @@ export function SettingsPage({ onOpenPrivacy }: SettingsPageProps) {
         animate="visible"
         className="flex-1 p-4 pb-24 space-y-6"
       >
+        {/* Predictions Section */}
+        <motion.div variants={itemVariants} className="space-y-3">
+          <h3 className="text-sm font-semibold text-muted-foreground flex items-center gap-2">
+            <Sparkles className="w-4 h-4" />
+            Predictions
+          </h3>
+
+          <div className="bg-card rounded-2xl border border-border divide-y divide-border overflow-hidden">
+            {/* Master toggle */}
+            <div className="flex items-center justify-between p-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center">
+                  <Calendar className="w-5 h-5 text-primary" />
+                </div>
+                <div>
+                  <p className="font-medium">Enable Predictions</p>
+                  <p className="text-sm text-muted-foreground">
+                    Show predicted cycles on calendar
+                  </p>
+                </div>
+              </div>
+              <Switch
+                checked={predictionSettings.enabled}
+                onCheckedChange={(checked) =>
+                  updateSettings({
+                    predictions: { ...predictionSettings, enabled: checked },
+                  })
+                }
+              />
+            </div>
+
+            {/* Show future periods */}
+            <div className={cn(
+              "flex items-center justify-between p-4 transition-opacity",
+              !predictionSettings.enabled && "opacity-50 pointer-events-none"
+            )}>
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-accent/20 flex items-center justify-center">
+                  <span className="text-lg">🩸</span>
+                </div>
+                <div>
+                  <p className="font-medium">Future Periods</p>
+                  <p className="text-sm text-muted-foreground">
+                    Show predicted period days
+                  </p>
+                </div>
+              </div>
+              <Switch
+                checked={predictionSettings.showFuturePeriods}
+                onCheckedChange={(checked) =>
+                  updateSettings({
+                    predictions: { ...predictionSettings, showFuturePeriods: checked },
+                  })
+                }
+              />
+            </div>
+
+            {/* Show fertile windows */}
+            <div className={cn(
+              "flex items-center justify-between p-4 transition-opacity",
+              !predictionSettings.enabled && "opacity-50 pointer-events-none"
+            )}>
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-green-500/20 flex items-center justify-center">
+                  <span className="text-lg">🥚</span>
+                </div>
+                <div>
+                  <p className="font-medium">Fertile Windows</p>
+                  <p className="text-sm text-muted-foreground">
+                    Show ovulation & fertile days
+                  </p>
+                </div>
+              </div>
+              <Switch
+                checked={predictionSettings.showFertileWindows}
+                onCheckedChange={(checked) =>
+                  updateSettings({
+                    predictions: { ...predictionSettings, showFertileWindows: checked },
+                  })
+                }
+              />
+            </div>
+
+            {/* Months ahead selector */}
+            <div className={cn(
+              "p-4 transition-opacity",
+              !predictionSettings.enabled && "opacity-50 pointer-events-none"
+            )}>
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 rounded-xl bg-secondary flex items-center justify-center">
+                  <Eye className="w-5 h-5 text-muted-foreground" />
+                </div>
+                <div>
+                  <p className="font-medium">Prediction Range</p>
+                  <p className="text-sm text-muted-foreground">
+                    How far ahead to predict
+                  </p>
+                </div>
+              </div>
+              <div className="flex gap-2 flex-wrap mt-3">
+                {[1, 3, 6, 12, 24].map((months) => (
+                  <button
+                    key={months}
+                    onClick={() =>
+                      updateSettings({
+                        predictions: { ...predictionSettings, monthsAhead: months },
+                      })
+                    }
+                    className={cn(
+                      "px-4 py-2 rounded-xl text-sm font-medium transition-all",
+                      predictionSettings.monthsAhead === months
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                    )}
+                  >
+                    {months} {months === 1 ? 'month' : 'months'}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </motion.div>
 
       {/* Data Management */}
       <motion.div variants={itemVariants} className="space-y-3">
