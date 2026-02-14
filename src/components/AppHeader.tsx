@@ -12,7 +12,7 @@ interface AppHeaderProps {
 
 export function AppHeader({ title, subtitle, showBack, onBack, rightElement }: AppHeaderProps) {
   return (
-    <div className="bg-gradient-primary px-4 py-4 safe-top">
+    <div className="bg-gradient-primary px-4 pt-10 pb-4 safe-top">
       <motion.div
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
@@ -30,7 +30,7 @@ export function AppHeader({ title, subtitle, showBack, onBack, rightElement }: A
             </Button>
           )}
           <div>
-            <h1 className="text-xl font-bold text-white">{title}</h1>
+            <h1 className="text-xl font-bold text-white mt-6">{title}</h1>
             {subtitle && (
               <p className="text-white/70 text-sm">{subtitle}</p>
             )}
