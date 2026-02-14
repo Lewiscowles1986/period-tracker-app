@@ -94,7 +94,7 @@ export function CalendarPage() {
       />
 
       {/* Prominent Ovulation/Period Prediction Cards */}
-      <div className="px-4 py-2 space-y-2">
+      <div style={{ paddingLeft: 'var(--content-padding-x)', paddingRight: 'var(--content-padding-x)', paddingTop: 'var(--content-padding-y)', gap: 'var(--card-gap)' }} className="flex flex-col">
         {ovulationInfo && (
           <motion.div
             initial={{ opacity: 0, y: -10 }}
@@ -140,7 +140,7 @@ export function CalendarPage() {
         )}
       </div>
 
-      <div className="flex-1 overflow-y-auto overflow-x-visible scrollbar-hide">
+      <div className="flex-1 overflow-y-auto overflow-x-visible scrollbar-hide" style={{ padding: 'var(--content-padding-y) var(--content-padding-x)' }}>
         {view === 'month' ? (
           <MonthView currentDate={currentDate} onDayClick={handleDayClick} />
         ) : (

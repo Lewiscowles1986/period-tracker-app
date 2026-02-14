@@ -33,7 +33,7 @@ const Index = () => {
 
   return (
     <PeriodDataProvider>
-      <div className="min-h-screen bg-background pb-20">
+      <div className="min-h-screen bg-background pb-20" style={{ paddingLeft: 'var(--page-padding-x)', paddingRight: 'var(--page-padding-x)' }}>
         <AnimatePresence mode="wait">
           {renderContent()}
         </AnimatePresence>

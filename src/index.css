@@ -41,6 +41,13 @@
 
     --radius: 1rem;
 
+    /* Layout spacing — adjust these to control main screen whitespace */
+    --page-padding-x: 0.5rem;       /* horizontal padding on the main screen */
+    --page-padding-x-sm: 1rem;      /* horizontal padding on larger screens */
+    --content-padding-x: 0.5rem;    /* horizontal padding inside content areas */
+    --content-padding-y: 0.5rem;    /* vertical padding inside content areas */
+    --card-gap: 0.5rem;             /* gap between prediction cards */
+
     /* Period tracking specific colors */
     --flow-none: 280 20% 95%;
     --flow-spotting: 340 60% 85%;
@@ -140,6 +147,16 @@
     @apply bg-background text-foreground antialiased;
     font-feature-settings: "rlig" 1, "calt" 1;
     -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Responsive layout spacing override for larger screens */
+  @media (min-width: 640px) {
+    :root {
+      --page-padding-x: var(--page-padding-x-sm);
+      --content-padding-x: 1.5rem;
+      --content-padding-y: 0.75rem;
+      --card-gap: 0.75rem;
+    }
   }
 
   /* Prevent pull-to-refresh on mobile for PWA feel */
