@@ -22,6 +22,8 @@ import { usePeriodDataContext } from '@/contexts/PeriodDataContext';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { DEFAULT_PREDICTION_SETTINGS } from '@/types/period';
+import { generateSeedData } from '@/lib/seedData';
+
 
 interface SettingsPageProps {
   onOpenPrivacy?: () => void;
@@ -113,6 +115,21 @@ export function SettingsPage({ onOpenPrivacy }: SettingsPageProps) {
     setShowDeleteConfirm(false);
     toast.success('All data cleared');
   }, [clearAllData]);
+
+  const handleSeedData = useCallback(() => {
+    try {
+      const seed = generateSeedData();
+      const success = importData(JSON.stringify(seed), false);
+      if (success) {
+        toast.success('Demo data seeded successfully!');
+      } else {
+        toast.error('Failed to seed demo data');
+      }
+    } catch (error) {
+      toast.error('Failed to generate seed data');
+    }
+  }, [importData]);
+
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -298,6 +315,22 @@ export function SettingsPage({ onOpenPrivacy }: SettingsPageProps) {
           </div>
           <ChevronRight className="w-5 h-5 text-muted-foreground" />
         </button>
+        <button
+          onClick={handleSeedData}
+          className="w-full flex items-center gap-4 p-4 bg-card rounded-2xl border border-border hover:border-primary/30 transition-all text-left"
+        >
+          <div className="w-12 h-12 rounded-xl bg-purple-500/20 flex items-center justify-center">
+            <Sparkles className="w-6 h-6 text-purple-500" />
+          </div>
+          <div className="flex-1">
+            <p className="font-medium text-purple-600 dark:text-purple-400">Seed Demo Data</p>
+            <p className="text-sm text-muted-foreground">
+              Populate app with realistic sample cycle logs
+            </p>
+          </div>
+          <ChevronRight className="w-5 h-5 text-muted-foreground" />
+        </button>
+
         <input
           ref={fileInputRef}
           type="file"
@@ -305,6 +338,7 @@ export function SettingsPage({ onOpenPrivacy }: SettingsPageProps) {
           onChange={handleFileChange}
           className="hidden"
         />
+
 
         <button
           onClick={() => setShowDeleteConfirm(true)}
