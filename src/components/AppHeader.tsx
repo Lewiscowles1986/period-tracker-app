@@ -31,7 +31,7 @@ export function AppHeader({ title, subtitle, showBack, onBack, rightElement }: A
           )}
           <div className="flex items-center gap-3 mt-6">
             <img 
-              src="/logo.png" 
+              src={`${import.meta.env.BASE_URL}logo.png`} 
               className="w-10 h-10 rounded-xl object-cover bg-white/20 p-0.5 border border-white/20 shadow-sm" 
               alt="Flow Logo" 
             />
