@@ -1,5 +1,5 @@
-const CACHE_NAME = 'flow-period-tracker-v5';
-const STATIC_CACHE = 'flow-static-v5';
+const CACHE_NAME = 'flow-period-tracker-v6';
+const STATIC_CACHE = 'flow-static-v6';
 
 const STATIC_ASSETS = [
   '/manifest.json'
