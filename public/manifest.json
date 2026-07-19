@@ -58,6 +58,35 @@
     }
   ],
   "categories": ["health", "lifestyle", "medical"],
-  "screenshots": [],
+  "screenshots": [
+    {
+      "src": "/screenshots/calendar-mobile.png",
+      "sizes": "390x844",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Calendar View"
+    },
+    {
+      "src": "/screenshots/insights-mobile.png",
+      "sizes": "390x844",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Insights View"
+    },
+    {
+      "src": "/screenshots/calendar-desktop.png",
+      "sizes": "1280x800",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Desktop Calendar View"
+    },
+    {
+      "src": "/screenshots/insights-desktop.png",
+      "sizes": "1280x800",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Desktop Insights View"
+    }
+  ],
   "prefer_related_applications": false
 }
