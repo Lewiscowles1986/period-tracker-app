@@ -145,7 +145,7 @@ export function SettingsPage({ onOpenPrivacy }: SettingsPageProps) {
   };
 
   return (
-    <div className="flex flex-col min-h-full">
+    <div className="flex flex-col h-full overflow-hidden">
       {/* Unified Header */}
       <AppHeader title="Settings" subtitle="Manage your data and preferences" />
 
@@ -153,7 +153,7 @@ export function SettingsPage({ onOpenPrivacy }: SettingsPageProps) {
         variants={containerVariants}
         initial="hidden"
         animate="visible"
-        className="flex-1 p-4 pb-24 space-y-6"
+        className="flex-1 overflow-y-auto px-4 pt-6 pb-24 space-y-6 scrollbar-hide"
       >
         {/* Predictions Section */}
         <motion.div variants={itemVariants} className="space-y-3">

@@ -33,10 +33,12 @@ const Index = () => {
 
   return (
     <PeriodDataProvider>
-      <div className="min-h-screen bg-background pb-20">
-        <AnimatePresence mode="wait">
-          {renderContent()}
-        </AnimatePresence>
+      <div className="fixed inset-0 flex flex-col bg-background overflow-hidden">
+        <div className="flex-1 min-h-0 relative">
+          <AnimatePresence mode="wait">
+            {renderContent()}
+          </AnimatePresence>
+        </div>
         {!showPrivacy && (
           <BottomNav activeTab={activeTab} onTabChange={setActiveTab} />
         )}

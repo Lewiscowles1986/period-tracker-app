@@ -21,7 +21,7 @@ export function PrivacyPolicyPage({ onBack }: PrivacyPolicyPageProps) {
   };
 
   return (
-    <div className="flex flex-col min-h-full">
+    <div className="flex flex-col h-full overflow-hidden">
       {/* Unified Header */}
       <AppHeader 
         title="Privacy Policy" 
@@ -34,7 +34,7 @@ export function PrivacyPolicyPage({ onBack }: PrivacyPolicyPageProps) {
         variants={containerVariants}
         initial="hidden"
         animate="visible"
-        className="flex-1 p-4 pb-24 space-y-6"
+        className="flex-1 overflow-y-auto px-4 pt-6 pb-24 space-y-6 scrollbar-hide"
       >
         {/* Hero Section */}
         <motion.div
