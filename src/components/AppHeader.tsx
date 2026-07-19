@@ -24,16 +24,23 @@ export function AppHeader({ title, subtitle, showBack, onBack, rightElement }: A
               variant="ghost"
               size="icon"
               onClick={onBack}
-              className="rounded-full text-white hover:bg-white/20"
+              className="rounded-full text-white hover:bg-white/20 mt-6"
             >
               <ArrowLeft className="w-5 h-5" />
             </Button>
           )}
-          <div>
-            <h1 className="text-xl font-bold text-white mt-6">{title}</h1>
-            {subtitle && (
-              <p className="text-white/70 text-sm">{subtitle}</p>
-            )}
+          <div className="flex items-center gap-3 mt-6">
+            <img 
+              src="/logo.png" 
+              className="w-10 h-10 rounded-xl object-cover bg-white/20 p-0.5 border border-white/20 shadow-sm" 
+              alt="Flow Logo" 
+            />
+            <div>
+              <h1 className="text-xl font-bold text-white leading-tight">{title}</h1>
+              {subtitle && (
+                <p className="text-white/70 text-sm leading-none mt-0.5">{subtitle}</p>
+              )}
+            </div>
           </div>
         </div>
         {rightElement && (
